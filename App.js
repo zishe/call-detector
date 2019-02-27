@@ -7,50 +7,72 @@
  */
 
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, Button, ListView, FlatList } from 'react-native';
-import CallDetectorManager from 'react-native-call-detection'
+import CallDetectorManager from 'react-native-call-detection';
+import { PermissionsAndroid } from 'react-native';
+import { Button, Container, Content, List, Header, Text, ListItem } from 'native-base';
 
 let callDetector = undefined;
+
+async function requestPermission() {
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+      {
+        title: 'Need App Permission',
+        message: 'Cool Photo App needs access to your camera ',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      },
+    );
+    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      console.log('You can use the camera');
+      return true;
+    } else {
+      console.log('Camera permission denied');
+      return false;
+    }
+  } catch (err) {
+    console.warn(err);
+    return false;
+  }
+}
 
 type Props = {};
 export default class App extends Component<Props> {
   constructor(props) {
     super(props)
-    // const ds = { rowHasChanged: (r1, r2) => r1 !== r2 };
-
     this.state = { callStates : [] }
   }
 
   render() {
     return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-
-        <Button
-          onPress={this.startListenerTapped}
-          title="Start Listener"
-          color="#841584"
-          style = {styles.bottomMargin}
-        />
-        <Button
-          onPress={this.stopListenerTapped}
-          title="Stop Listener"
-          color="#841584"
-          style = {styles.bottomMargin}
-        />
-        <FlatList
-          data={this.state.callStates}
-          renderItem={(rowData) => <Text style = {styles.callLogs}>{rowData}</Text>}
-        />
-      </View>
+      <Container>
+        <Header />
+        <Content>
+          <Button success onPress={this.startListenerTapped}><Text> Start Listener </Text></Button>
+          <Button danger onPress={this.stopListenerTapped}><Text> Stop Listener </Text></Button>
+          <List>
+            {this.state.callStates.forEach(rowData => {
+              return (
+                <ListItem>
+                  <Text>{rowData}</Text>
+                </ListItem>
+              );
+            })}
+          </List>
+        </Content>
+      </Container>
     );
   }
 
   startListenerTapped = () => {
+    const result = requestPermission();
+    console.log(result);
+
     callDetector = new CallDetectorManager((event, number) => {
-        var updatedCallStates = this.state.callStates
-        updatedCallStates.push(event + ' - ' + number)
-        this.setState({ callStates:  updatedCallStates });
+        this.setState({ callStates:  [...this.state.callStates, `${event} - ${number}`] });
+        console.log(`new event:  ${event}  -  ${number}`);
       },
       true, // if you want to read the phone number of the incoming call [ANDROID], otherwise false
       ()=>{
@@ -68,17 +90,3 @@ export default class App extends Component<Props> {
     callDetector && callDetector.dispose();
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-});
