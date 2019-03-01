@@ -10,6 +10,7 @@ import React, { Component } from 'react';
 import CallDetectorManager from 'react-native-call-detection';
 import { PermissionsAndroid } from 'react-native';
 import { Button, Container, Content, List, Header, Text, ListItem } from 'native-base';
+import { oauth, net, smartstore, smartsync } from 'react-native-force';
 
 let callDetector = undefined;
 
@@ -19,17 +20,29 @@ async function requestPermission() {
       PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
       {
         title: 'Need App Permission',
-        message: 'Cool Photo App needs access to your camera ',
+        message: 'App needs access to your phone state',
         buttonNeutral: 'Ask Me Later',
         buttonNegative: 'Cancel',
         buttonPositive: 'OK',
       },
     );
-    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      console.log('You can use the camera');
+    const logGranted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
+      {
+        title: 'Need App Permission',
+        message: 'App needs access to your call log',
+        buttonNeutral: 'Ask Me Later',
+        buttonNegative: 'Cancel',
+        buttonPositive: 'OK',
+      },
+    );
+    console.log(logGranted);
+
+    if (granted === PermissionsAndroid.RESULTS.GRANTED && logGranted === PermissionsAndroid.RESULTS.GRANTED) {
+      console.log('Permissions granted');
       return true;
     } else {
-      console.log('Camera permission denied');
+      console.log('Permissions denied');
       return false;
     }
   } catch (err) {
@@ -38,8 +51,8 @@ async function requestPermission() {
   }
 }
 
-type Props = {};
-export default class App extends Component<Props> {
+// type Props = {};
+export default class App extends Component {
   constructor(props) {
     super(props)
     this.state = { callStates : [] }
@@ -53,13 +66,11 @@ export default class App extends Component<Props> {
           <Button success onPress={this.startListenerTapped}><Text> Start Listener </Text></Button>
           <Button danger onPress={this.stopListenerTapped}><Text> Stop Listener </Text></Button>
           <List>
-            {this.state.callStates.forEach(rowData => {
-              return (
-                <ListItem>
-                  <Text>{rowData}</Text>
-                </ListItem>
-              );
-            })}
+            {this.state.callStates.map((rowData, number) =>
+              <ListItem key={number}>
+                <Text>{rowData}</Text>
+              </ListItem>
+            )}
           </List>
         </Content>
       </Container>
@@ -73,6 +84,7 @@ export default class App extends Component<Props> {
     callDetector = new CallDetectorManager((event, number) => {
         this.setState({ callStates:  [...this.state.callStates, `${event} - ${number}`] });
         console.log(`new event:  ${event}  -  ${number}`);
+        console.log(this.state);
       },
       true, // if you want to read the phone number of the incoming call [ANDROID], otherwise false
       ()=>{
